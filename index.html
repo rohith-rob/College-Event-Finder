@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>College Event Finder</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="container header-row">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">CE</div>
+          <div class="brand-text">
+            <div class="brand-name">College Event Finder</div>
+            <div class="brand-subtitle">Find events. Register fast. Get reminders.</div>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button id="notifyBtn" class="btn btn-secondary" type="button">
+            Enable reminders
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="container">
+      <section class="hero">
+        <h1>Upcoming events</h1>
+        <p class="muted">
+          Browse college events and register in a few clicks. Your registrations are saved on
+          this device.
+        </p>
+      </section>
+
+      <section class="controls" aria-label="Event filters">
+        <div class="control">
+          <label for="searchInput">Search</label>
+          <input
+            id="searchInput"
+            type="search"
+            placeholder="Search by title, club, or location…"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="control">
+          <label for="categorySelect">Category</label>
+          <select id="categorySelect">
+            <option value="all">All</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label for="sortSelect">Sort</label>
+          <select id="sortSelect">
+            <option value="soonest">Soonest</option>
+            <option value="latest">Latest</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="grid">
+        <section class="card">
+          <div class="card-header">
+            <h2>Event listing</h2>
+            <span id="eventCount" class="pill" aria-live="polite">0 events</span>
+          </div>
+          <div id="events" class="event-list" aria-live="polite"></div>
+        </section>
+
+        <aside class="card">
+          <div class="card-header">
+            <h2>My registrations</h2>
+            <span id="regCount" class="pill" aria-live="polite">0</span>
+          </div>
+
+          <div class="stack">
+            <p class="muted small">
+              You can download calendar reminders (.ics) for any event you’ve registered for.
+            </p>
+
+            <div id="registrations" class="reg-list"></div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <dialog id="registerDialog" class="dialog">
+      <form id="registerForm" method="dialog" class="dialog-body">
+        <div class="dialog-header">
+          <div>
+            <div class="dialog-title">Register</div>
+            <div id="dialogEventMeta" class="muted small"></div>
+          </div>
+          <button class="icon-btn" type="button" id="closeDialogBtn" aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <input type="hidden" id="eventIdInput" name="eventId" />
+
+        <div class="field">
+          <label for="nameInput">Full name</label>
+          <input id="nameInput" name="name" required placeholder="e.g., Rohith Roblelal" />
+        </div>
+
+        <div class="field">
+          <label for="emailInput">Email</label>
+          <input id="emailInput" name="email" type="email" required placeholder="e.g., you@college.edu" />
+        </div>
+
+        <div class="field">
+          <label for="yearSelect">Year</label>
+          <select id="yearSelect" name="year" required>
+            <option value="" selected disabled>Select…</option>
+            <option>1st year</option>
+            <option>2nd year</option>
+            <option>3rd year</option>
+            <option>4th year</option>
+            <option>Postgraduate</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="reminderSelect">Reminder</label>
+          <select id="reminderSelect" name="reminderMinutes">
+            <option value="0">No reminder</option>
+            <option value="10">10 minutes before</option>
+            <option value="15" selected>15 minutes before</option>
+            <option value="30">30 minutes before</option>
+            <option value="60">1 hour before</option>
+            <option value="1440">1 day before</option>
+          </select>
+          <div class="muted tiny">
+            If you enable browser reminders, we’ll notify you while this page is open. For guaranteed
+            reminders, download the calendar file after registering.
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm registration</button>
+        </div>
+      </form>
+    </dialog>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span class="muted small">Built with HTML, CSS, and JavaScript.</span>
+        <span class="muted small">Tip: Open `index.html` in your browser to run.</span>
+      </div>
+    </footer>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
