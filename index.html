@@ -20,9 +20,8 @@
         </div>
 
         <div class="header-actions">
-          <button id="notifyBtn" class="btn btn-secondary" type="button">
-            Enable reminders
-          </button>
+          <button id="adminBtn" class="btn btn-secondary" type="button">Admin</button>
+          <button id="notifyBtn" class="btn btn-secondary" type="button">Enable reminders</button>
         </div>
       </div>
     </header>
@@ -144,6 +143,104 @@
         <div class="dialog-actions">
           <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
           <button type="submit" class="btn btn-primary">Confirm registration</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="adminAuthDialog" class="dialog">
+      <form id="adminAuthForm" method="dialog" class="dialog-body">
+        <div class="dialog-header">
+          <div>
+            <div class="dialog-title">Admin</div>
+            <div class="muted small">Add or remove events (saved on this device).</div>
+          </div>
+          <button class="icon-btn" type="button" id="closeAdminAuthBtn" aria-label="Close">✕</button>
+        </div>
+
+        <div id="adminAuthModeNote" class="muted small"></div>
+
+        <div class="field">
+          <label for="adminPassInput">Passcode</label>
+          <input id="adminPassInput" name="passcode" type="password" required placeholder="Enter passcode" />
+        </div>
+
+        <div class="field" id="adminPassConfirmField">
+          <label for="adminPassConfirmInput">Confirm passcode</label>
+          <input
+            id="adminPassConfirmInput"
+            name="passcodeConfirm"
+            type="password"
+            placeholder="Re-enter passcode"
+          />
+          <div class="muted tiny">
+            First time only: set a passcode for this browser. Anyone with this device can use it.
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" id="cancelAdminAuthBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="adminAuthSubmitBtn">Continue</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="adminPanelDialog" class="dialog">
+      <form id="adminEventForm" method="dialog" class="dialog-body">
+        <div class="dialog-header">
+          <div>
+            <div class="dialog-title">Admin panel</div>
+            <div class="muted small">Add a new event or remove an existing one.</div>
+          </div>
+          <button class="icon-btn" type="button" id="closeAdminPanelBtn" aria-label="Close">✕</button>
+        </div>
+
+        <div class="field">
+          <label for="adminTitleInput">Title</label>
+          <input id="adminTitleInput" name="title" required placeholder="e.g., Robotics Workshop" />
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label for="adminCategoryInput">Category</label>
+            <input id="adminCategoryInput" name="category" required placeholder="e.g., Tech" />
+          </div>
+          <div class="field">
+            <label for="adminOrganizerInput">Organizer</label>
+            <input id="adminOrganizerInput" name="organizer" required placeholder="e.g., Robotics Club" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="adminLocationInput">Location</label>
+          <input id="adminLocationInput" name="location" required placeholder="e.g., Lab 101" />
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label for="adminStartInput">Start</label>
+            <input id="adminStartInput" name="start" type="datetime-local" required />
+          </div>
+          <div class="field">
+            <label for="adminEndInput">End</label>
+            <input id="adminEndInput" name="end" type="datetime-local" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="adminDescInput">Description</label>
+          <input id="adminDescInput" name="description" required placeholder="Short details about the event…" />
+        </div>
+
+        <div class="dialog-actions">
+          <button type="reset" class="btn btn-secondary">Clear</button>
+          <button type="submit" class="btn btn-primary">Add event</button>
+        </div>
+
+        <div class="admin-divider"></div>
+
+        <div class="admin-section">
+          <div class="admin-section-title">All events</div>
+          <div id="adminEventList" class="admin-list"></div>
         </div>
       </form>
     </dialog>

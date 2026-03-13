@@ -1,4 +1,4 @@
-const EVENTS = [
+const BASE_EVENTS = [
   {
     id: "e01",
     title: "Tech Talk: Building with MERN",
@@ -57,6 +57,9 @@ const EVENTS = [
 const STORAGE_KEY = "cef.registrations.v1";
 const NOTIFY_KEY = "cef.notifications.enabled.v1";
 const SCHEDULED_KEY = "cef.notifications.scheduled.v1";
+const EVENTS_KEY = "cef.events.custom.v1";
+const EVENTS_REMOVED_KEY = "cef.events.removed.v1";
+const ADMIN_PASS_KEY = "cef.admin.passcode.v1";
 
 const els = {
   events: document.getElementById("events"),
@@ -66,6 +69,7 @@ const els = {
   searchInput: document.getElementById("searchInput"),
   categorySelect: document.getElementById("categorySelect"),
   sortSelect: document.getElementById("sortSelect"),
+  adminBtn: document.getElementById("adminBtn"),
   notifyBtn: document.getElementById("notifyBtn"),
   dialog: document.getElementById("registerDialog"),
   registerForm: document.getElementById("registerForm"),
@@ -77,6 +81,28 @@ const els = {
   emailInput: document.getElementById("emailInput"),
   yearSelect: document.getElementById("yearSelect"),
   reminderSelect: document.getElementById("reminderSelect"),
+
+  adminAuthDialog: document.getElementById("adminAuthDialog"),
+  adminAuthForm: document.getElementById("adminAuthForm"),
+  adminAuthModeNote: document.getElementById("adminAuthModeNote"),
+  adminPassInput: document.getElementById("adminPassInput"),
+  adminPassConfirmField: document.getElementById("adminPassConfirmField"),
+  adminPassConfirmInput: document.getElementById("adminPassConfirmInput"),
+  adminAuthSubmitBtn: document.getElementById("adminAuthSubmitBtn"),
+  closeAdminAuthBtn: document.getElementById("closeAdminAuthBtn"),
+  cancelAdminAuthBtn: document.getElementById("cancelAdminAuthBtn"),
+
+  adminPanelDialog: document.getElementById("adminPanelDialog"),
+  closeAdminPanelBtn: document.getElementById("closeAdminPanelBtn"),
+  adminEventForm: document.getElementById("adminEventForm"),
+  adminTitleInput: document.getElementById("adminTitleInput"),
+  adminCategoryInput: document.getElementById("adminCategoryInput"),
+  adminOrganizerInput: document.getElementById("adminOrganizerInput"),
+  adminLocationInput: document.getElementById("adminLocationInput"),
+  adminStartInput: document.getElementById("adminStartInput"),
+  adminEndInput: document.getElementById("adminEndInput"),
+  adminDescInput: document.getElementById("adminDescInput"),
+  adminEventList: document.getElementById("adminEventList"),
 };
 
 function toLocalDateTime(iso) {
@@ -104,19 +130,26 @@ function escapeText(text) {
   });
 }
 
-function getRegistrations() {
+function readJSON(key, fallback) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
   } catch {
-    return [];
+    return fallback;
   }
 }
 
+function writeJSON(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function getRegistrations() {
+  const parsed = readJSON(STORAGE_KEY, []);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
 function setRegistrations(list) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  writeJSON(STORAGE_KEY, list);
 }
 
 function getNotificationEnabled() {
@@ -128,28 +161,57 @@ function setNotificationEnabled(v) {
 }
 
 function getScheduledMap() {
-  try {
-    const raw = localStorage.getItem(SCHEDULED_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    if (!parsed || typeof parsed !== "object") return {};
-    return parsed;
-  } catch {
-    return {};
-  }
+  const parsed = readJSON(SCHEDULED_KEY, {});
+  if (!parsed || typeof parsed !== "object") return {};
+  return parsed;
 }
 
 function setScheduledMap(map) {
-  localStorage.setItem(SCHEDULED_KEY, JSON.stringify(map));
+  writeJSON(SCHEDULED_KEY, map);
 }
 
-function deriveCategories() {
-  const cats = Array.from(new Set(EVENTS.map((e) => e.category))).sort();
+function getCustomEvents() {
+  const parsed = readJSON(EVENTS_KEY, []);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter((e) => e && typeof e === "object" && typeof e.id === "string");
+}
+
+function setCustomEvents(list) {
+  writeJSON(EVENTS_KEY, list);
+}
+
+function getRemovedEventIds() {
+  const parsed = readJSON(EVENTS_REMOVED_KEY, []);
+  if (!Array.isArray(parsed)) return new Set();
+  return new Set(parsed.filter((x) => typeof x === "string"));
+}
+
+function setRemovedEventIds(set) {
+  writeJSON(EVENTS_REMOVED_KEY, Array.from(set));
+}
+
+function getAllEvents() {
+  const removed = getRemovedEventIds();
+  const merged = [...BASE_EVENTS, ...getCustomEvents()].filter((e) => !removed.has(e.id));
+  return merged;
+}
+
+function findEventById(eventId) {
+  return getAllEvents().find((e) => e.id === eventId) || null;
+}
+
+function renderCategoryOptions() {
+  const current = els.categorySelect.value || "all";
+  const cats = Array.from(new Set(getAllEvents().map((e) => e.category))).sort();
+  els.categorySelect.innerHTML = `<option value="all">All</option>`;
   for (const c of cats) {
     const opt = document.createElement("option");
     opt.value = c;
     opt.textContent = c;
     els.categorySelect.appendChild(opt);
   }
+  const stillExists = current === "all" || cats.includes(current);
+  els.categorySelect.value = stillExists ? current : "all";
 }
 
 function getFilteredEvents() {
@@ -157,7 +219,7 @@ function getFilteredEvents() {
   const cat = els.categorySelect.value || "all";
   const sort = els.sortSelect.value || "soonest";
 
-  let list = EVENTS.slice();
+  let list = getAllEvents().slice();
 
   if (cat !== "all") list = list.filter((e) => e.category === cat);
 
@@ -245,7 +307,7 @@ function renderRegistrations() {
     return;
   }
 
-  const eventsById = new Map(EVENTS.map((e) => [e.id, e]));
+  const eventsById = new Map(getAllEvents().map((e) => [e.id, e]));
 
   els.registrations.innerHTML = regs
     .map((r) => {
@@ -275,7 +337,7 @@ function renderRegistrations() {
 }
 
 function openRegisterDialog(eventId) {
-  const e = EVENTS.find((x) => x.id === eventId);
+  const e = findEventById(eventId);
   if (!e) return;
 
   els.eventIdInput.value = e.id;
@@ -381,7 +443,7 @@ function buildICS(event) {
 }
 
 function downloadICS(eventId) {
-  const e = EVENTS.find((x) => x.id === eventId);
+  const e = findEventById(eventId);
   if (!e) return;
 
   const ics = buildICS(e);
@@ -431,7 +493,7 @@ function scheduleAllReminders() {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
 
   const regs = getRegistrations();
-  const eventsById = new Map(EVENTS.map((e) => [e.id, e]));
+  const eventsById = new Map(getAllEvents().map((e) => [e.id, e]));
   const scheduled = getScheduledMap();
 
   for (const r of regs) {
@@ -469,6 +531,134 @@ function scheduleAllReminders() {
   }
 
   setScheduledMap(scheduled);
+}
+
+function getAdminPasscode() {
+  const raw = localStorage.getItem(ADMIN_PASS_KEY);
+  return raw ? String(raw) : "";
+}
+
+function setAdminPasscode(passcode) {
+  localStorage.setItem(ADMIN_PASS_KEY, String(passcode));
+}
+
+let isAdmin = false;
+let adminAuthMode = "login"; // "setup" | "login"
+
+function openAdminAuth() {
+  const hasPass = Boolean(getAdminPasscode());
+  adminAuthMode = hasPass ? "login" : "setup";
+
+  els.adminAuthModeNote.textContent =
+    adminAuthMode === "setup"
+      ? "Set a new admin passcode."
+      : "Enter your admin passcode.";
+
+  els.adminPassConfirmField.style.display = adminAuthMode === "setup" ? "" : "none";
+  els.adminPassConfirmInput.required = adminAuthMode === "setup";
+  els.adminAuthSubmitBtn.textContent = adminAuthMode === "setup" ? "Set passcode" : "Login";
+
+  els.adminPassInput.value = "";
+  els.adminPassConfirmInput.value = "";
+  els.adminAuthDialog.showModal();
+  els.adminPassInput.focus();
+}
+
+function closeAdminAuth() {
+  if (els.adminAuthDialog.open) els.adminAuthDialog.close();
+}
+
+function openAdminPanel() {
+  isAdmin = true;
+  renderAdminList();
+  els.adminPanelDialog.showModal();
+}
+
+function closeAdminPanel() {
+  if (els.adminPanelDialog.open) els.adminPanelDialog.close();
+}
+
+function makeId() {
+  return `c_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
+}
+
+function parseLocalDateTimeToISO(v) {
+  // datetime-local gives "YYYY-MM-DDTHH:mm" (no timezone). Treat as local time.
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString();
+}
+
+function toDatetimeLocalValue(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const mo = pad2(d.getMonth() + 1);
+  const da = pad2(d.getDate());
+  const h = pad2(d.getHours());
+  const mi = pad2(d.getMinutes());
+  return `${y}-${mo}-${da}T${h}:${mi}`;
+}
+
+function addCustomEvent({ title, category, organizer, location, start, end, description }) {
+  const id = makeId();
+  const ev = { id, title, category, organizer, location, start, end, description, source: "custom" };
+  const list = getCustomEvents();
+  list.push(ev);
+  setCustomEvents(list);
+}
+
+function removeEvent(eventId) {
+  const custom = getCustomEvents();
+  const idx = custom.findIndex((e) => e.id === eventId);
+  if (idx >= 0) {
+    custom.splice(idx, 1);
+    setCustomEvents(custom);
+  } else {
+    const removed = getRemovedEventIds();
+    removed.add(eventId);
+    setRemovedEventIds(removed);
+  }
+
+  // Remove registrations for deleted event.
+  const regs = getRegistrations().filter((r) => r.eventId !== eventId);
+  setRegistrations(regs);
+}
+
+function renderAdminList() {
+  const list = getAllEvents()
+    .slice()
+    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+
+  if (list.length === 0) {
+    els.adminEventList.innerHTML = `<div class="empty">No events found.</div>`;
+    return;
+  }
+
+  els.adminEventList.innerHTML = list
+    .map((e) => {
+      const isCustom = getCustomEvents().some((c) => c.id === e.id);
+      const badge = isCustom ? `<span class="pill">Custom</span>` : `<span class="pill">Default</span>`;
+      return `
+        <div class="admin-item">
+          <div class="event-top">
+            <div>
+              <p class="admin-item-title">${escapeText(e.title)}</p>
+              <p class="admin-item-meta">
+                <strong>When</strong>: ${escapeText(toLocalDateTime(e.start))}<br/>
+                <strong>Where</strong>: ${escapeText(e.location)}<br/>
+                <strong>Organizer</strong>: ${escapeText(e.organizer)} • <strong>Category</strong>: ${escapeText(e.category)}
+              </p>
+            </div>
+            ${badge}
+          </div>
+          <div class="event-actions">
+            <button class="btn btn-danger" type="button" data-action="admin-remove" data-id="${e.id}">Remove</button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
 }
 
 function wireEvents() {
@@ -537,7 +727,7 @@ function wireEvents() {
     renderRegistrations();
     scheduleAllReminders();
 
-    const e = EVENTS.find((x) => x.id === eventId);
+    const e = findEventById(eventId);
     if (e) {
       const msg = reminderMinutes
         ? `Registered for "${e.title}". Reminder set for ${reminderMinutes} minutes before.`
@@ -545,10 +735,112 @@ function wireEvents() {
       alert(msg);
     }
   });
+
+  els.adminBtn.addEventListener("click", () => {
+    if (isAdmin) {
+      openAdminPanel();
+      return;
+    }
+    openAdminAuth();
+  });
+
+  els.closeAdminAuthBtn.addEventListener("click", closeAdminAuth);
+  els.cancelAdminAuthBtn.addEventListener("click", closeAdminAuth);
+
+  els.adminAuthForm.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const fd = new FormData(els.adminAuthForm);
+    const pass = String(fd.get("passcode") || "").trim();
+    const pass2 = String(fd.get("passcodeConfirm") || "").trim();
+
+    if (adminAuthMode === "setup") {
+      if (!pass || pass.length < 4) {
+        alert("Passcode must be at least 4 characters.");
+        return;
+      }
+      if (pass !== pass2) {
+        alert("Passcodes do not match.");
+        return;
+      }
+      setAdminPasscode(pass);
+      closeAdminAuth();
+      openAdminPanel();
+      alert("Admin passcode set.");
+      return;
+    }
+
+    const expected = getAdminPasscode();
+    if (!expected) {
+      // fallback: if storage got cleared
+      closeAdminAuth();
+      openAdminAuth();
+      return;
+    }
+    if (pass !== expected) {
+      alert("Incorrect passcode.");
+      return;
+    }
+    closeAdminAuth();
+    openAdminPanel();
+  });
+
+  els.closeAdminPanelBtn.addEventListener("click", closeAdminPanel);
+
+  els.adminEventForm.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    if (!isAdmin) return;
+
+    const fd = new FormData(els.adminEventForm);
+    const title = String(fd.get("title") || "").trim();
+    const category = String(fd.get("category") || "").trim();
+    const organizer = String(fd.get("organizer") || "").trim();
+    const location = String(fd.get("location") || "").trim();
+    const startLocal = String(fd.get("start") || "").trim();
+    const endLocal = String(fd.get("end") || "").trim();
+    const description = String(fd.get("description") || "").trim();
+
+    const start = parseLocalDateTimeToISO(startLocal);
+    const end = parseLocalDateTimeToISO(endLocal);
+
+    if (!title || !category || !organizer || !location || !start || !end || !description) return;
+    if (new Date(end).getTime() <= new Date(start).getTime()) {
+      alert("End time must be after start time.");
+      return;
+    }
+
+    addCustomEvent({ title, category, organizer, location, start, end, description });
+    els.adminEventForm.reset();
+
+    renderCategoryOptions();
+    renderEvents();
+    renderAdminList();
+    alert("Event added.");
+  });
+
+  els.adminEventList.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("button[data-action]");
+    if (!btn) return;
+    const action = btn.getAttribute("data-action");
+    const id = btn.getAttribute("data-id");
+    if (action !== "admin-remove" || !id) return;
+    if (!isAdmin) return;
+
+    const e = findEventById(id);
+    if (!e) return;
+
+    const ok = confirm(`Remove event: "${e.title}"?\n\nThis will also remove any registrations for it on this device.`);
+    if (!ok) return;
+
+    removeEvent(id);
+    renderCategoryOptions();
+    renderEvents();
+    renderRegistrations();
+    renderAdminList();
+  });
 }
 
 function init() {
-  deriveCategories();
+  renderCategoryOptions();
   updateNotifyButton();
   wireEvents();
   renderEvents();
