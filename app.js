@@ -60,6 +60,7 @@ const SCHEDULED_KEY = "cef.notifications.scheduled.v1";
 const EVENTS_KEY = "cef.events.custom.v1";
 const EVENTS_REMOVED_KEY = "cef.events.removed.v1";
 const ADMIN_PASS_KEY = "cef.admin.passcode.v1";
+const STUDENT_MODE_KEY = "cef.role.student.v1";
 
 const els = {
   events: document.getElementById("events"),
@@ -168,6 +169,14 @@ function getScheduledMap() {
 
 function setScheduledMap(map) {
   writeJSON(SCHEDULED_KEY, map);
+}
+
+function isStudentMode() {
+  return localStorage.getItem(STUDENT_MODE_KEY) === "true";
+}
+
+function setStudentMode(on) {
+  localStorage.setItem(STUDENT_MODE_KEY, on ? "true" : "false");
 }
 
 function getCustomEvents() {
@@ -661,6 +670,15 @@ function renderAdminList() {
     .join("");
 }
 
+function updateAdminVisibility() {
+  if (!els.adminBtn) return;
+  if (isStudentMode()) {
+    els.adminBtn.style.display = "none";
+  } else {
+    els.adminBtn.style.display = "";
+  }
+}
+
 function wireEvents() {
   els.searchInput.addEventListener("input", () => renderEvents());
   els.categorySelect.addEventListener("change", () => renderEvents());
@@ -721,6 +739,10 @@ function wireEvents() {
     if (!eventId || !name || !email || !year) return;
 
     upsertRegistration({ eventId, name, email, year, reminderMinutes });
+
+    // Once a student has registered (treated as "logged in"), hide admin entry.
+    setStudentMode(true);
+    updateAdminVisibility();
 
     closeDialog();
     renderEvents();
@@ -842,6 +864,7 @@ function wireEvents() {
 function init() {
   renderCategoryOptions();
   updateNotifyButton();
+  updateAdminVisibility();
   wireEvents();
   renderEvents();
   renderRegistrations();
